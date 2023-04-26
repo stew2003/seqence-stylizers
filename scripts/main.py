@@ -1,7 +1,7 @@
 import argparse
 import cv2
 
-from scripts.extract_features import *
+from style_transferrer import *
 
 ARGS = None # will contain the command line args
 
@@ -30,34 +30,25 @@ def main():
   print(ARGS.video)
   print(ARGS.style)
 
-  style_image = load_style_image(ARGS.style)
-  style_image = prepare_image(style_image)
-
-  style_features = extract_style_features(style_image)
+  st = StyleTransferrer(ARGS.style)
+  
 
   # vidcap = cv2.VideoCapture(ARGS.video)
   # success, frame = vidcap.read()
   count = 0
   # while success:
-
-  frame = load_style_image(ARGS.video)
-  frame = prepare_image(frame)
-  content_features = extract_content_features(frame)
-
-  optimized_frame = tf.Variable(frame)
   
-  epochs = 10
+  epochs = 2
   steps_per_epoch = 100
 
-  step = 0
-  for n in range(epochs):
-    for m in range(steps_per_epoch):
-      step += 1
-      train_step(optimized_frame, style_features, content_features)
-      print(".", end='', flush=True)
-    print("Train step: {}".format(step))
+  st.set_content_image(ARGS.video)
 
-  tensor_to_image(optimized_frame).save("frame" + str(count) + ".jpg")
+  for j in range(0, 10):
+    for i in range(0, 100):
+      st.optimize()
+    print(j)
+
+  st.to_image().save("frame1.jpg")
 
     # success, frame = vidcap.read()
     # print('Read a new frame: ', success)
