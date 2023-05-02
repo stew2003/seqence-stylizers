@@ -19,7 +19,6 @@ def tensor_to_gram(input_tensor):
   # vectorize each output into one matrix
   num_filters = int(input_tensor.shape[-1])
   vectorized_tensor = tf.reshape(input_tensor, [-1, num_filters])
-  vector_size = tf.shape(vectorized_tensor)[0]
 
   # calculate gram as X^T * X
   gram = tf.matmul(vectorized_tensor, vectorized_tensor, transpose_a=True)

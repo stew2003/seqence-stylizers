@@ -12,7 +12,10 @@ STYLE_LAYERS = ['block1_conv1',
                 'block5_conv1']
 NUM_STYLE_LAYERS = len(STYLE_LAYERS)
 
-STYLE_WEIGHT = 1e-2
-CONTENT_WEIGHT = 1e4
+STYLE_WEIGHT = 1
+CONTENT_WEIGHT = 100
 
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
+
+EPOCHS = 2
+STEPS_PER_EPOCH = 100

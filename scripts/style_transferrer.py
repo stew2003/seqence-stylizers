@@ -17,6 +17,11 @@ def prepare_image(image):
 
   return image
 
+def prepare_frame(frame):
+  '''takes in a raw frame from openCV and prepares it for work'''
+
+  return prepare_image(frame / 255.0)
+
 def load_style_image(path):
   '''loads a style image from the path and prepares it for use'''
   image = tf.io.read_file(path)
@@ -48,14 +53,18 @@ class StyleTransferrer:
 
     self.target_content_features = None
     self.content_image = None
+    self.initialized = False
 
-  def set_content_image(self, content_image):
+  def set_content_features(self, content_image):
     '''sets the style transferrer to optimize for a content image'''
-    content_image = load_style_image(content_image)
-    # prepared_content_image = prepare_image(content_image)
     self.target_content_features = self.extractor.extract(content_image)[0]
-    
-    self.content_image = tf.Variable(content_image)
+  
+  def initialize_optimization(self, starting_state):
+    if not self.initialized:
+      self.content_image = tf.Variable(starting_state)
+      self.initialized = True
+    else:
+      self.content_image.assign(starting_state)
 
   def total_loss(self):
     content_features, style_features = self.extractor.extract(self.content_image)
@@ -63,7 +72,7 @@ class StyleTransferrer:
     style_loss = mean_square_loss(self.target_style_features, style_features)
     content_loss = mean_square_loss(self.target_content_features, content_features)
 
-    return constants.CONTENT_WEIGHT * content_loss + constants.STYLE_WEIGHT * style_loss
+    return constants.CONTENT_WEIGHT / constants.NUM_CONTENT_LAYERS * content_loss + constants.STYLE_WEIGHT / constants.NUM_STYLE_LAYERS * style_loss
 
   @tf.function
   def optimize(self):

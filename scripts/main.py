@@ -2,6 +2,7 @@ import argparse
 import cv2
 
 from style_transferrer import *
+from optical_flow import *
 
 ARGS = None # will contain the command line args
 
@@ -32,27 +33,48 @@ def main():
 
   st = StyleTransferrer(ARGS.style)
   
+  vidcap = cv2.VideoCapture(ARGS.video)
+  success, cur_frame = vidcap.read()
+  cur_frame_grey = to_grey(cur_frame)
+  cur_initialization = prepare_frame(cur_frame)
 
-  # vidcap = cv2.VideoCapture(ARGS.video)
-  # success, frame = vidcap.read()
+  # For drawing flow
+  # mask = np.zeros_like(cur_frame)
+  # mask[..., 1] = 255
+
   count = 0
-  # while success:
+  while True:
+    # set up this frame
+    prepped_cur_frame = prepare_frame(cur_frame)
+    st.set_content_features(prepped_cur_frame)
+    st.initialize_optimization(cur_initialization)
+
+    # optimize this frame
+    for j in range(constants.EPOCHS):
+      for i in range(constants.STEPS_PER_EPOCH):
+        st.optimize()
+      print(j)
+    st.to_image().save(f"frames/frame{count:04d}.png")
+
+    # find flow to optimize start of next frame
+    success, next_frame = vidcap.read()
+    if not success:
+      break
+
+    next_frame_grey = to_grey(next_frame)
+    flow = calc_flow(cur_frame_grey, next_frame_grey)
+    
+    cur_initialization = prepare_frame(warp(cur_frame, flow))
+    cur_frame_grey = next_frame_grey
+    cur_frame = next_frame
+    count += 1
+    
+    # Again for drawing!
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #   break
   
-  epochs = 2
-  steps_per_epoch = 100
-
-  st.set_content_image(ARGS.video)
-
-  for j in range(0, 10):
-    for i in range(0, 100):
-      st.optimize()
-    print(j)
-
-  st.to_image().save("frame1.jpg")
-
-    # success, frame = vidcap.read()
-    # print('Read a new frame: ', success)
-    # break
+  # cv2.destroyAllWindows()
+  vidcap.release()
 
 if __name__ == "__main__":
   ARGS = parse_args()
