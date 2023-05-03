@@ -275,7 +275,7 @@ export default function Home() {
             <div className="absolute top-4 left-4 text-white font-bold text-lg">
               Sequence Stylizers
             </div>
-            <div className="rainbow z-10 text-6xl">
+            <div className="rainbow z-10 text-6xl min-h-[5rem]">
               Welcome Stylizers
             </div>
             
