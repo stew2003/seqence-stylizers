@@ -1,7 +1,8 @@
 import argparse
 import cv2
 
-from scripts.extract_features import *
+from style_transferrer import *
+from optical_flow import *
 
 ARGS = None # will contain the command line args
 
@@ -30,38 +31,50 @@ def main():
   print(ARGS.video)
   print(ARGS.style)
 
-  style_image = load_style_image(ARGS.style)
-  style_image = prepare_image(style_image)
-
-  style_features = extract_style_features(style_image)
-
-  # vidcap = cv2.VideoCapture(ARGS.video)
-  # success, frame = vidcap.read()
-  count = 0
-  # while success:
-
-  frame = load_style_image(ARGS.video)
-  frame = prepare_image(frame)
-  content_features = extract_content_features(frame)
-
-  optimized_frame = tf.Variable(frame)
+  st = StyleTransferrer(ARGS.style)
   
-  epochs = 10
-  steps_per_epoch = 100
+  vidcap = cv2.VideoCapture(ARGS.video)
+  success, cur_frame = vidcap.read()
+  cur_frame_grey = to_grey(cur_frame)
+  cur_initialization = prepare_frame(cur_frame)
 
-  step = 0
-  for n in range(epochs):
-    for m in range(steps_per_epoch):
-      step += 1
-      train_step(optimized_frame, style_features, content_features)
-      print(".", end='', flush=True)
-    print("Train step: {}".format(step))
+  # For drawing flow
+  # mask = np.zeros_like(cur_frame)
+  # mask[..., 1] = 255
 
-  tensor_to_image(optimized_frame).save("frame" + str(count) + ".jpg")
+  count = 0
+  while True:
+    # set up this frame
+    prepped_cur_frame = prepare_frame(cur_frame)
+    st.set_content_features(prepped_cur_frame)
+    st.initialize_optimization(cur_initialization)
 
-    # success, frame = vidcap.read()
-    # print('Read a new frame: ', success)
-    # break
+    # optimize this frame
+    for j in range(constants.EPOCHS):
+      for i in range(constants.STEPS_PER_EPOCH):
+        st.optimize()
+      print(j)
+    st.to_image().save(f"frames/frame{count:04d}.png")
+
+    # find flow to optimize start of next frame
+    success, next_frame = vidcap.read()
+    if not success:
+      break
+
+    next_frame_grey = to_grey(next_frame)
+    flow = calc_flow(cur_frame_grey, next_frame_grey)
+    
+    cur_initialization = prepare_frame(warp(cur_frame, flow))
+    cur_frame_grey = next_frame_grey
+    cur_frame = next_frame
+    count += 1
+    
+    # Again for drawing!
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #   break
+  
+  # cv2.destroyAllWindows()
+  vidcap.release()
 
 if __name__ == "__main__":
   ARGS = parse_args()
