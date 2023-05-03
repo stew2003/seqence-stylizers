@@ -16,7 +16,7 @@ export const parseForm = async (
 
     const uploadDir = join(
         process.cwd(),
-        `/uploads/${dateFn.format(Date.now(), "dd-MM-Y")}`
+        `/public/${dateFn.format(Date.now(), "dd-MM-Y")}`
     )
   
     try {

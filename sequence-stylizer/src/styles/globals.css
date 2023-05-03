@@ -34,7 +34,6 @@ body {
   -webkit-background-clip: text;
   color: transparent;
   font-weight: 600;
-  font-size: 6rem;
 }
 
 @keyframes animatedgradient {
@@ -47,4 +46,41 @@ body {
 	100% {
 		background-position: 0% 50%;
 	}
+}
+
+.cell {
+  width: fit-content;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  --border: 0.15rem;
+  --radius: 1.5rem;
+  border-radius: var(--radius);
+  position: relative;
+  background-color: black;
+  transition: background-color 500ms linear;
+  box-sizing: border-box;
+}
+
+.cell:hover {
+  border: var(--border) solid transparent;
+}
+
+.cell:hover::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius);
+  top: calc(-2 * var(--border));
+  left: calc(-2 * var(--border));
+  right: calc(-2 * var(--border));
+  bottom: calc(-2 * var(--border));
+  background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, black, black, black, #a166ab, #5073b8, #1098ad, black, black, #07b39b, #6fba82);
+  animation: animatedgradient 5s ease alternate infinite;
+  background-size: 300% 300%;
+  animation-fill-mode: forwards;
+  z-index: -1;
 }
