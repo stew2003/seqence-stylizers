@@ -33,51 +33,18 @@ def main():
   print(ARGS.style)
 
   st = StyleTransferrer(ARGS.style)
-  
   vidcap = cv2.VideoCapture(ARGS.video)
-  success, cur_frame = vidcap.read()
-  cur_frame_grey = to_grey(cur_frame)
-  cur_initialization = prepare_frame(cur_frame)
-
-  # For drawing flow
-  # mask = np.zeros_like(cur_frame)
-  # mask[..., 1] = 255
-
   count = 0
-  while True:
-    # set up this frame
-    prepped_cur_frame = prepare_frame(cur_frame)
-    st.set_content_features(prepped_cur_frame)
-    st.initialize_optimization(cur_initialization)
+  while vidcap.isOpened():
+    success, frame = vidcap.read()
 
-    # optimize this frame
-    for j in range(constants.EPOCHS):
-      for i in range(constants.STEPS_PER_EPOCH):
-        st.optimize()
-      print(j)
-    st.to_image().save(f"frames/frame{count:04d}.png")
-
-    # find flow to optimize start of next frame
-    success, next_frame = vidcap.read()
-    if not success:
-      break
-
-    next_frame_grey = to_grey(next_frame)
-    flow = calc_flow(cur_frame_grey, next_frame_grey)
-    
-    cur_initialization = prepare_frame(warp(cur_frame, flow))
-    cur_frame_grey = next_frame_grey
-    cur_frame = next_frame
+    st.set_frame(frame)
+    st.optimize().save(f"frames/frame{count:04d}.png")
     count += 1
 
     if (count == 3):
       break
-    
-    # Again for drawing!
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #   break
-  
-  # cv2.destroyAllWindows()
+
   vidcap.release()
 
   # ffmpeg -framerate 30 -pattern_type glob -i "frames/*.png" -c:v libx264 -crf 10 -pix_fmt yuv420p output/video.mp4 -y
