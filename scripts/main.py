@@ -1,7 +1,9 @@
 import argparse
 import cv2
+import ffmpeg
 
-from scripts.extract_features import *
+from style_transferrer import *
+from optical_flow import *
 
 ARGS = None # will contain the command line args
 
@@ -30,38 +32,44 @@ def main():
   print(ARGS.video)
   print(ARGS.style)
 
-  style_image = load_style_image(ARGS.style)
-  style_image = prepare_image(style_image)
-
-  style_features = extract_style_features(style_image)
-
-  # vidcap = cv2.VideoCapture(ARGS.video)
-  # success, frame = vidcap.read()
+  st = StyleTransferrer(ARGS.style)
+  vidcap = cv2.VideoCapture(ARGS.video)
   count = 0
-  # while success:
+  prev = None
 
-  frame = load_style_image(ARGS.video)
-  frame = prepare_image(frame)
-  content_features = extract_content_features(frame)
+  while vidcap.isOpened():
+    success, frame = vidcap.read()
 
-  optimized_frame = tf.Variable(frame)
-  
-  epochs = 10
-  steps_per_epoch = 100
+    st.set_frame(frame)
+    st.optimize().save(f"frames/frame{count:04d}.png")
+    mask = np.zeros_like(frame)
 
-  step = 0
-  for n in range(epochs):
-    for m in range(steps_per_epoch):
-      step += 1
-      train_step(optimized_frame, style_features, content_features)
-      print(".", end='', flush=True)
-    print("Train step: {}".format(step))
+    frame = to_grey(frame)
 
-  tensor_to_image(optimized_frame).save("frame" + str(count) + ".jpg")
+    if (count > 0):
+      mask[..., 1] = 255
 
-    # success, frame = vidcap.read()
-    # print('Read a new frame: ', success)
-    # break
+      flow = calc_flow(prev, frame)
+      print("Full Prev Grey: ", prev)
+      print("Full Cur Grey: ", frame)
+      print("Full Flow: ", flow)
+      draw_flow(mask, flow)
+
+    count += 1
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
+
+    prev = frame
+
+    # if (count == 3):
+    #   break
+
+  vidcap.release()
+  cv2.destroyAllWindows()
+
+  # ffmpeg -framerate 30 -pattern_type glob -i "frames/*.png" -c:v libx264 -crf 10 -pix_fmt yuv420p output/video.mp4 -y
+  ffmpeg.input('frames/*.png', pattern_type='glob', framerate=30).filter('deflicker', mode='pm', size=10).filter('scale', size='hd1080', force_original_aspect_ratio='increase').output('output/movie.mp4', crf=20, preset='slower', movflags='faststart', pix_fmt='yuv420p').run()
 
 if __name__ == "__main__":
   ARGS = parse_args()
