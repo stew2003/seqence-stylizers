@@ -31,23 +31,23 @@ def warp(image, flow):
   return cv2.remap(image, flow, None, cv2.INTER_LINEAR)
 
 # From tutorial to draw flow nicely!
-# def draw_flow(mask, flow):
-#   '''takes in an optical flow and draws it using a mask'''
+def draw_flow(mask, flow):
+  '''takes in an optical flow and draws it using a mask'''
 
-#   # Computes the magnitude and angle of the 2D vectors
-#   magnitude, angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+  # Computes the magnitude and angle of the 2D vectors
+  magnitude, angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     
-#   # Sets image hue according to the optical flow 
-#   # direction
-#   mask[..., 0] = angle * 180 / np.pi / 2
+  # Sets image hue according to the optical flow 
+  # direction
+  mask[..., 0] = angle * 180 / np.pi / 2
     
-#   # Sets image value according to the optical flow
-#   # magnitude (normalized)
-#   mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
+  # Sets image value according to the optical flow
+  # magnitude (normalized)
+  mask[..., 2] = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
     
-#   # Converts HSV to RGB (BGR) color representation
-#   rgb = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
+  # Converts HSV to RGB (BGR) color representation
+  rgb = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
     
-#   # Opens a new window and displays the output frame
-#   cv2.imshow("dense optical flow", rgb)
+  # Opens a new window and displays the output frame
+  cv2.imshow("dense optical flow", rgb)
     
