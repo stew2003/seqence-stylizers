@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
+import App from './_app';
+import LoadingAll from '@component/components/LoadingAll';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -8,7 +10,8 @@ export default function Home() {
     <main
       className={`flex min-h-screen flex-col items-center ${inter.className} p-40 gap-y-10`}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-black from-40% to-black/[.7] min-h-screen min-w-screen"/>
+      <LoadingAll/>
+      {/* <div className="absolute inset-0 bg-gradient-to-b from-black from-40% to-black/[.7] min-h-screen min-w-screen"/>
       <div className="absolute top-0 left-0 right-0 bottom-0 bg-cloud-bg -z-10"/>
 
       <div className="absolute top-4 left-4 text-white font-bold text-lg">
@@ -29,8 +32,8 @@ export default function Home() {
             </div>
             <input id="dropzone-file" type="file" multiple className="hidden" />
         </label>
-      </div> 
-
+      </div>
+      <div></div>  */}
     </main>
   )
 }
