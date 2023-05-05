@@ -14,6 +14,7 @@ NUM_STYLE_LAYERS = len(STYLE_LAYERS)
 
 STYLE_WEIGHT = 1
 CONTENT_WEIGHT = 100
+TEMPORAL_WEIGHT = 400
 
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
 

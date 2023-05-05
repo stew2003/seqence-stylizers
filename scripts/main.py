@@ -1,9 +1,13 @@
 import argparse
 import cv2
 import ffmpeg
+import time
+import PIL
 
 from style_transferrer import *
 from optical_flow import *
+
+from scipy.ndimage.filters import gaussian_filter
 
 ARGS = None # will contain the command line args
 
@@ -35,35 +39,14 @@ def main():
   st = StyleTransferrer(ARGS.style)
   vidcap = cv2.VideoCapture(ARGS.video)
   count = 0
-  prev = None
 
   while vidcap.isOpened():
     success, frame = vidcap.read()
 
     st.set_frame(frame)
     st.optimize().save(f"frames/frame{count:04d}.png")
-    mask = np.zeros_like(frame)
-
-    frame = to_grey(frame)
-
-    if (count > 0):
-      mask[..., 1] = 255
-
-      flow = calc_flow(prev, frame)
-      print("Full Prev Grey: ", prev)
-      print("Full Cur Grey: ", frame)
-      print("Full Flow: ", flow)
-      draw_flow(mask, flow)
 
     count += 1
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-      break
-
-    prev = frame
-
-    # if (count == 3):
-    #   break
 
   vidcap.release()
   cv2.destroyAllWindows()

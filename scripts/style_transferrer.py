@@ -129,22 +129,18 @@ class StyleTransferrer:
 
   def set_frame(self, frame):
     '''sets the style transferrer to optimize for a current frame image'''
+    self.current_grey_frame = to_grey(np.array(tf.squeeze(prepare_image(frame)), dtype=np.uint8))
 
     current_frame = prepare_frame(frame)
-
-    self.current_grey_frame = to_grey(np.array(tf.squeeze(prepare_image(frame)), dtype=np.uint8))
     self.target_content_features = self.extractor.extract(current_frame)[0]
     
     if self.first_frame:
       # if its the first frame, start the optimization from the conntent image
       self.optimized_frame = tf.Variable(current_frame)
     else:
-      PIL.Image.fromarray(self.prev_grey_frame).save("frames/grey_prev.png")
-      PIL.Image.fromarray(self.current_grey_frame).save("frames/grey_cur.png")
-      PIL.Image.fromarray(self.current_grey_frame - self.prev_grey_frame).save("frames/difference.png")
+      self.backward_flow = calc_flow(self.prev_grey_frame, self.current_grey_frame)
+      self.forward_flow = calc_flow(self.current_grey_frame, self.prev_grey_frame)
 
-      self.forward_flow = calc_flow(prev_frame=self.prev_grey_frame, cur_frame=self.current_grey_frame)
-      self.backward_flow = calc_flow(prev_frame=self.current_grey_frame, cur_frame=self.prev_grey_frame)
       self.prev_warped_to_cur = warp(self.prev_stylized_frame, self.forward_flow)
       self.calculate_occlusions()
       
@@ -155,28 +151,15 @@ class StyleTransferrer:
     '''calculate occlusions between the previous and current frames based on the method in the paper'''
     self.occlusions = np.zeros_like(self.current_grey_frame)
 
-    print("Prev Small Grey: ", self.prev_grey_frame)
-    print("Cur Small Grey: ", self.current_grey_frame)
-    print("Small Flow: ", self.forward_flow)
-
     for y in range(len(self.forward_flow)):
       for x in range(len(self.forward_flow[y])):
-        new_y = y + self.backward_flow[y][x][0]
-        new_x = x + self.backward_flow[y][x][1]
-  
-        warped_flow = bilinear_interpolate(new_x, new_y, self.forward_flow)
+        warped_flow = bilinear_interpolate(x + self.backward_flow[y][x][0], y + self.backward_flow[y][x][1], self.forward_flow)
 
         left_side = np.linalg.norm(warped_flow + self.backward_flow[y][x]) ** 2
         right_side = 0.01 * ((np.linalg.norm(warped_flow) ** 2) + (np.linalg.norm(self.backward_flow[y][x]) ** 2)) + 0.5
         
         if (left_side > right_side):
           self.occlusions[y][x] = 1
-        else:
-          print("YO")
-
-      # print("Y: ", y)
-
-    print(self.occlusions)
 
   def temporal_loss(self):
     if self.first_frame:
@@ -185,18 +168,26 @@ class StyleTransferrer:
     x = tf.squeeze(self.optimized_frame)
     w = self.prev_warped_to_cur
 
+    sum = 0
+    for channel in range(3):
+      sum += tf.reduce_mean(self.occlusions * tf.square(x[:, :, channel] - w[:, :, channel]))
 
+    return sum / 3
 
+  @tf.function
   def total_loss(self):
     '''calculate the total loss of the system in the current state'''
     content_features, style_features = self.extractor.extract(self.optimized_frame)
 
     style_loss = mean_square_loss(self.target_style_features, style_features)
     content_loss = mean_square_loss(self.target_content_features, content_features)
+    temporal_loss = self.temporal_loss()
 
-    return constants.CONTENT_WEIGHT * content_loss + constants.STYLE_WEIGHT * style_loss
+    return constants.CONTENT_WEIGHT * content_loss \
+        + constants.STYLE_WEIGHT * style_loss \
+        + constants.TEMPORAL_WEIGHT * temporal_loss
 
-  @tf.function
+  # @tf.function
   def __optimize_step(self):
     '''a single optimization step based on the loss'''
 
@@ -225,7 +216,6 @@ class StyleTransferrer:
 
   def to_array(self):
     '''returns the optimized image as a numpy array'''
-
     tensor = np.array(self.optimized_frame, dtype=np.float32)
     if np.ndim(tensor) > 3:
       assert tensor.shape[0] == 1

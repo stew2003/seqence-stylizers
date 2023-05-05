@@ -23,15 +23,15 @@ def calc_flow(prev_frame, cur_frame):
 
 def warp(image, flow):
   '''warp an image to its next frame based on predicted flow between frames'''
+  flow = np.copy(flow)
 
   h, w = flow.shape[:2]
   flow[:, :, 0] += np.arange(w)
   flow[:, :, 1] += np.arange(h)[:, np.newaxis]
-
   return cv2.remap(image, flow, None, cv2.INTER_LINEAR)
 
 # From tutorial to draw flow nicely!
-def draw_flow(mask, flow):
+def draw_flow(mask, flow, name):
   '''takes in an optical flow and draws it using a mask'''
 
   # Computes the magnitude and angle of the 2D vectors
@@ -49,5 +49,5 @@ def draw_flow(mask, flow):
   rgb = cv2.cvtColor(mask, cv2.COLOR_HSV2BGR)
     
   # Opens a new window and displays the output frame
-  cv2.imshow("dense optical flow", rgb)
+  cv2.imshow(name, rgb)
     
