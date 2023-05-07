@@ -39,7 +39,7 @@ def mean_square_loss(target_tensors, current_tensors):
 
   loss = 0
   for target_feature, current_feature in zip(target_tensors, current_tensors):
-    mse = tf.reduce_mean(tf.square(current_feature - target_feature))
+    mse = tf.reduce_mean((current_feature - target_feature) ** 2)
     loss += mse
 
   return loss
@@ -151,17 +151,34 @@ class StyleTransferrer:
     '''calculate occlusions between the previous and current frames based on the method in the paper'''
     self.occlusions = np.zeros_like(self.current_grey_frame)
 
+    u_gradient = np.gradient(self.backward_flow[:, :, 0])
+    v_gradient = np.gradient(self.backward_flow[:, :, 1])
+
     for y in range(len(self.forward_flow)):
       for x in range(len(self.forward_flow[y])):
         warped_flow = bilinear_interpolate(x + self.backward_flow[y][x][0], y + self.backward_flow[y][x][1], self.forward_flow)
 
+        # Forward-Backward Consistency
         left_side = np.linalg.norm(warped_flow + self.backward_flow[y][x]) ** 2
         right_side = 0.01 * ((np.linalg.norm(warped_flow) ** 2) + (np.linalg.norm(self.backward_flow[y][x]) ** 2)) + 0.5
         
         if (left_side > right_side):
           self.occlusions[y][x] = 1
 
+        # Motion Boundary
+        cur_u_gradient = np.array([u_gradient[0][y][x], u_gradient[1][y][x]])
+        cur_v_gradient = np.array([v_gradient[0][y][x], v_gradient[1][y][x]])
+
+        left_side = np.linalg.norm(cur_u_gradient) ** 2 + np.linalg.norm(cur_v_gradient) ** 2
+        right_side = 0.01 * (np.linalg.norm(self.backward_flow[y][x]) ** 2) + 0.002
+
+        if (left_side > right_side):
+          self.occlusions[y][x] = 1
+
+        
+
   def temporal_loss(self):
+    '''calculate the temporal loss between two frames'''
     if self.first_frame:
       return 0
     
@@ -170,11 +187,11 @@ class StyleTransferrer:
 
     sum = 0
     for channel in range(3):
-      sum += tf.reduce_mean(self.occlusions * tf.square(x[:, :, channel] - w[:, :, channel]))
+      sum += tf.reduce_mean(self.occlusions * np.square(x[:, :, channel] - w[:, :, channel]))
 
     return sum / 3
 
-  @tf.function
+  @tf.function()
   def total_loss(self):
     '''calculate the total loss of the system in the current state'''
     content_features, style_features = self.extractor.extract(self.optimized_frame)
@@ -183,11 +200,17 @@ class StyleTransferrer:
     content_loss = mean_square_loss(self.target_content_features, content_features)
     temporal_loss = self.temporal_loss()
 
+    print("Style: ", constants.STYLE_WEIGHT * style_loss)
+    print("Content: ", constants.CONTENT_WEIGHT * content_loss)
+    print("Temporal: ", constants.TEMPORAL_WEIGHT * temporal_loss)
+
+
+
     return constants.CONTENT_WEIGHT * content_loss \
         + constants.STYLE_WEIGHT * style_loss \
         + constants.TEMPORAL_WEIGHT * temporal_loss
 
-  # @tf.function
+  @tf.function()
   def __optimize_step(self):
     '''a single optimization step based on the loss'''
 
@@ -202,7 +225,7 @@ class StyleTransferrer:
   def optimize(self, as_image=True):
     '''optimize the image many times and then return the result as an array or image'''
 
-    for j in range(constants.EPOCHS):
+    for j in range(15 if self.first_frame else constants.EPOCHS):
       for _ in range(constants.STEPS_PER_EPOCH):
         self.__optimize_step()
       print("Epoch: ", j)

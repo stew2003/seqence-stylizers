@@ -22,7 +22,7 @@ def tensor_to_gram(input_tensor):
 
   # calculate gram as X^T * X
   gram = tf.matmul(vectorized_tensor, vectorized_tensor, transpose_a=True)
-  
+
   return gram
 
 class FeatureExtractor:
@@ -34,7 +34,8 @@ class FeatureExtractor:
 
   def extract(self, image):
     '''returns a tuple of first the content features then the style features as gram matrices'''
-    all_features = self.vgg(image)
+    int_image = image * 255.0
+    all_features = self.vgg(int_image)
 
     content_features = all_features[:constants.NUM_CONTENT_LAYERS]
     style_features = all_features[constants.NUM_CONTENT_LAYERS:]

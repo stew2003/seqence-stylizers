@@ -43,6 +43,9 @@ def main():
   while vidcap.isOpened():
     success, frame = vidcap.read()
 
+    if not success:
+      break
+
     st.set_frame(frame)
     st.optimize().save(f"frames/frame{count:04d}.png")
 
