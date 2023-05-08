@@ -3,6 +3,7 @@ import { UploadResponseType } from "./api/upload"
 import { TransferResponseType } from "./api/transfer"
 import Link from "next/link"
 import Loading from "@component/components/loading"
+import LoadingAll from "@component/components/LoadingAll"
 
 interface FileStorage {
   file: File
@@ -252,7 +253,7 @@ export default function Home() {
     <div>
       {
         loading ?
-        <Loading/> :
+        <LoadingAll/> :
         <>
           {
             (transfer && show) &&
