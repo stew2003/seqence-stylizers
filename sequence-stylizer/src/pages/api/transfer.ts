@@ -10,13 +10,14 @@ export const config = {
 
 export type TransferResponseType = {
     data: {
-      url: string | null
+      status: string | null
       message: string | null
     } | null
     error: string | null
 }
 
-let path = ""
+let complete = ""
+let error: string | null = null
 
 export default async function handler (
     req: NextApiRequest,
@@ -34,49 +35,37 @@ export default async function handler (
 
 if (req.method === "POST") {
         console.log("post transfer request received")
-        const imagePaths = JSON.parse(req.body)
+        const mediaPaths = JSON.parse(req.body)
         try {
             console.log('before process')
-            const activateCommand = 'conda activate cs1430'
-            const scriptPath = 'src/utils/script.py'
+            const scriptPath = 'src/utils/scripts/main.py'
+            const suffix = mediaPaths[0].slice(-3)
+            
+            let flag = '--image'
+            if (suffix === 'mp4') flag = '--video'
+
+            const activateProcess = spawn(`conda run -n cs1430 python ${scriptPath} ${flag} ${mediaPaths[0]} --style ${mediaPaths[1]}`, { shell: true, stdio: 'pipe' })
+            activateProcess.stdout.pipe(process.stdout);
     
-            const activateProcess = spawn(activateCommand, [], { shell: true })
             activateProcess.stdout.on('data', (data) => {
-                console.log('stdout: ' + data)
+                console.log('stdout: ' + data.toString().trim())
             })
               
             activateProcess.stderr.on('data', (data) => {
-                console.log('stderr: ' + data)
+                console.log('stderr: ' + data.toString().trim())
+                error = data.toString().trim()
             })
     
-            let url = ""
             activateProcess.on('close', (code) => {
                 console.log(`child process exited with code ${code}`)
                 if (code === 0) {
-                    const pythonProcess = spawn('py', [scriptPath, imagePaths[0]])
-              
-                    pythonProcess.stdout.on('data', (data) => {
-                        url = data.toString().trim()
-                        console.log('stdout: ' + data)
-                        console.log(url)
-                    })
-              
-                    pythonProcess.stderr.on('data', (data) => {
-                        console.error('stderr: ' + data)
-                    })
-              
-                    pythonProcess.on('close', (code) => {
-                        console.log(`child process exited with code ${code}`)
-                        path = url
-                    })
-                } else {
-                    console.error(`Failed to activate Conda environment`)
+                    complete = flag
                 }
             })
             
             res.status(200).json({
                 data: {
-                    url: null,
+                    status: null,
                     message: "script is running"
                 },
                 error: null,
@@ -89,10 +78,10 @@ if (req.method === "POST") {
         console.log('get transfer request received')
         res.status(200).json({
             data: {
-                url: path,
+                status: complete,
                 message: null
             },
-            error: null,
+            error: error,
         })
         return
     }

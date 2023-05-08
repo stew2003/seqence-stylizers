@@ -36,3 +36,4 @@ next-env.d.ts
 
 # Nicky's additions
 public/*/
+src/utils/scripts/__pycache__

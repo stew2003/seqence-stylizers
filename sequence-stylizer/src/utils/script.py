@@ -2,6 +2,8 @@ from PIL import Image
 import sys
 import time
 
+## Template python script - no longer used
+
 def parse_file_path(file_path):
     last_slash_index = file_path.rfind('\\')
     if last_slash_index != -1:

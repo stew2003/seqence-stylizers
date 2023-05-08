@@ -127,11 +127,16 @@ class StyleTransferrer:
     self.backward_flow = None
     self.occlusions = None
 
-  def set_frame(self, frame):
+  def set_frame(self, frame, is_prepared=False):
     '''sets the style transferrer to optimize for a current frame image'''
-    self.current_grey_frame = to_grey(np.array(tf.squeeze(prepare_image(frame)), dtype=np.uint8))
-
-    current_frame = prepare_frame(frame)
+    current_frame = None
+    if not is_prepared:
+      self.current_grey_frame = to_grey(np.array(tf.squeeze(prepare_image(frame)), dtype=np.uint8))
+      current_frame = prepare_frame(frame)
+    else:
+      self.current_grey_frame = to_grey(np.array(tf.squeeze(frame), dtype=np.uint8))
+      current_frame = frame
+      
     self.target_content_features = self.extractor.extract(current_frame)[0]
     
     if self.first_frame:

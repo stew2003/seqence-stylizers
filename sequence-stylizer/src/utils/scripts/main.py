@@ -3,6 +3,9 @@ import cv2
 import ffmpeg
 import time
 import PIL
+import os
+import shutil
+
 
 from style_transferrer import *
 from optical_flow import *
@@ -20,7 +23,13 @@ def parse_args():
   
   parser.add_argument(
     '--video',
-    required=True,
+    required=False,
+    help='''A path to the input video to run the stylization algorithm on'''
+  )
+
+  parser.add_argument(
+    '--image',
+    required=False,
     help='''A path to the input video to run the stylization algorithm on'''
   )
   
@@ -36,26 +45,37 @@ def main():
   print(ARGS.video)
   print(ARGS.style)
 
+  dir_path = "public/frames"
+  if os.path.exists(dir_path):
+    shutil.rmtree(dir_path)
+  
+  os.mkdir('public/frames')
   st = StyleTransferrer(ARGS.style)
-  vidcap = cv2.VideoCapture(ARGS.video)
-  count = 0
 
-  while vidcap.isOpened():
-    success, frame = vidcap.read()
+  if (ARGS.video != None):
+    vidcap = cv2.VideoCapture(ARGS.video)
+    count = 0
 
-    if not success:
-      break
+    while vidcap.isOpened():
+      success, frame = vidcap.read()
 
-    st.set_frame(frame)
-    st.optimize().save(f"frames/frame{count:04d}.png")
+      if not success:
+        break
 
-    count += 1
+      st.set_frame(frame)
+      st.optimize().save(f"public/frames/frame{count:04d}.png")
 
-  vidcap.release()
-  cv2.destroyAllWindows()
+      count += 1
 
-  # ffmpeg -framerate 30 -pattern_type glob -i "frames/*.png" -c:v libx264 -crf 10 -pix_fmt yuv420p output/video.mp4 -y
-  ffmpeg.input('frames/*.png', pattern_type='glob', framerate=30).filter('deflicker', mode='pm', size=10).filter('scale', size='hd1080', force_original_aspect_ratio='increase').output('output/movie.mp4', crf=20, preset='slower', movflags='faststart', pix_fmt='yuv420p').run()
+    vidcap.release()
+    cv2.destroyAllWindows()
+
+    # ffmpeg -framerate 30 -pattern_type glob -i "frames/*.png" -c:v libx264 -crf 10 -pix_fmt yuv420p output/video.mp4 -y
+    ffmpeg.input('public/frames/*.png', pattern_type='glob', framerate=30).filter('deflicker', mode='pm', size=10).filter('scale', size='hd1080', force_original_aspect_ratio='increase').output('public/output/movie.mp4', crf=20, preset='slower', movflags='faststart', pix_fmt='yuv420p').run()
+  else:
+    image = load_style_image(ARGS.image)
+    st.set_frame(image, True)
+    st.optimize().save(f"public/output/image.png")
 
 if __name__ == "__main__":
   ARGS = parse_args()

@@ -4,6 +4,7 @@ import { TransferResponseType } from "./api/transfer"
 import Link from "next/link"
 import Loading from "@component/components/loading"
 import LoadingAll from "@component/components/LoadingAll"
+import SERVER_URL, { IMAGE_OUTPUT, MOVIE_OUTPUT } from "@component/utils/globals"
 
 interface FileStorage {
   file: File
@@ -15,6 +16,7 @@ export default function Home() {
   const [files, setFiles] = useState<FileStorage[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+  const [downloadThumbnail, setDownloadThumbnail] = useState<string | null>(null)
   const [imagePaths, setImagePaths] = useState<string[]>([])
   const [transfer, setTransfer] = useState<string | null>(null)
   const [show, setShow] = useState<boolean>(true)
@@ -157,7 +159,7 @@ export default function Home() {
 
     // switch to loading screen and make upload request
     setLoading(true)
-    const res = await fetch("http://localhost:3000/api/upload", {
+    const res = await fetch(SERVER_URL + "upload", {
         method: "POST",
         body: formData,
     })
@@ -207,7 +209,7 @@ export default function Home() {
     console.log('submitting transfer request')
     // switch to loading screen to make transfer request
     setLoading(true)
-    const res = await fetch("http://localhost:3000/api/transfer", {
+    const res = await fetch(SERVER_URL + "transfer", {
       method: "POST",
       body: JSON.stringify(imagePaths),
     })
@@ -219,28 +221,45 @@ export default function Home() {
       
       // continually loop and check status of transfer script every 10 seconds using get request
       const loop_id = setInterval(async () => {
-        const get_res = await fetch("http://localhost:3000/api/transfer", {
+        const get_res = await fetch(SERVER_URL + "transfer", {
           method: "GET",
         })
         const get_response: TransferResponseType = await get_res.json()
         // once script finishes the loop terminates and state is updated
-        if (get_response.data?.url !== '') {
+        if (get_response.data?.status !== "") {
           clearInterval(loop_id)
-          console.log(parseFileName(get_response.data!.url!))
-          setTransfer(parseFileName(get_response.data!.url!))
+          if (get_response.data!.status === '--image') setTransfer(IMAGE_OUTPUT) // sets downloable preview to the image
+          else { // extract thumbnail from outputted movie
+            const video = document.createElement("video")
+            video.src = MOVIE_OUTPUT
+            video.currentTime = 1.0
+
+            video.addEventListener("seeked", () => {
+              const canvas = document.createElement("canvas")
+              canvas.width = video.videoWidth
+              canvas.height = video.videoHeight
+
+              const ctx = canvas.getContext("2d")
+              ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+              const new_url = canvas.toDataURL()
+              setDownloadThumbnail(new_url)
+              
+              // remove extraneous elements
+              video.remove()
+              canvas.remove()
+            })
+            setTransfer(MOVIE_OUTPUT) 
+          }
+          setLoading(false)
+        } else if (get_response.error !== null) {
+          clearInterval(loop_id)
+          console.log(get_response.error)
+          alert(get_response.error)
           setLoading(false)
         }
       }, 10000)
     }
-  }
-
-  const parseFileName = (imagePath: string) => {
-    // returns the folder name (the date of the execution) and the filename from the full path returned from the api
-    const lastSlashIndex = imagePath.lastIndexOf('\\')
-    const secondToLastSlashIndex = imagePath.lastIndexOf('\\', lastSlashIndex - 1)
-    const parsedText = imagePath.slice(secondToLastSlashIndex)
-
-    return parsedText.replace(/\\/g, '/')
   }
 
   const onDownload = (e: React.MouseEvent<HTMLElement>) => {
@@ -261,7 +280,7 @@ export default function Home() {
               <p className="rainbow text-[4rem]">
                 Style Transfer Download
               </p>
-              <img className="max-w-[50%] max-h-[50%] rounded-lg border-blue-600 border-2" src={transfer} alt="Image"/>
+              <img className="max-w-[50%] max-h-[50%] rounded-lg border-blue-600 border-2" src={downloadThumbnail ? downloadThumbnail : transfer} alt="Image"/>
               <Link href={transfer} target="_blank" download className="cell border-blue-600 border-[0.15rem]" onClick={onDownload}>
                 Download
               </Link>

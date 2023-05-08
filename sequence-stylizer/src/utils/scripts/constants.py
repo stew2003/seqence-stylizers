@@ -18,5 +18,7 @@ TEMPORAL_WEIGHT = 1e2
 
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=0.02, beta_1=0.99, epsilon=1e-1)
 
-EPOCHS = 6
-STEPS_PER_EPOCH = 50
+# EPOCHS = 6
+EPOCHS = 2
+# STEPS_PER_EPOCH = 50
+STEPS_PER_EPOCH = 2
