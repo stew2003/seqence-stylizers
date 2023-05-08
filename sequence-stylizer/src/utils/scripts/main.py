@@ -42,7 +42,6 @@ def parse_args():
   return parser.parse_args()
 
 def main():
-  print(ARGS.video)
   print(ARGS.style)
 
   dir_path = "public/frames"
@@ -53,6 +52,8 @@ def main():
   st = StyleTransferrer(ARGS.style)
 
   if (ARGS.video != None):
+    print(ARGS.video)
+
     vidcap = cv2.VideoCapture(ARGS.video)
     count = 0
 
@@ -64,7 +65,7 @@ def main():
 
       st.set_frame(frame)
       st.optimize().save(f"public/frames/frame{count:04d}.png")
-
+      print(f"Frame {count:d} completed")
       count += 1
 
     vidcap.release()
@@ -73,6 +74,8 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i "frames/*.png" -c:v libx264 -crf 10 -pix_fmt yuv420p output/video.mp4 -y
     ffmpeg.input('public/frames/*.png', pattern_type='glob', framerate=30).filter('deflicker', mode='pm', size=10).filter('scale', size='hd1080', force_original_aspect_ratio='increase').output('public/output/movie.mp4', crf=20, preset='slower', movflags='faststart', pix_fmt='yuv420p').run()
   else:
+    print(ARGS.image)
+
     image = load_style_image(ARGS.image)
     st.set_frame(image, True)
     st.optimize().save(f"public/output/image.png")

@@ -44,7 +44,7 @@ if (req.method === "POST") {
             let flag = '--image'
             if (suffix === 'mp4') flag = '--video'
 
-            const activateProcess = spawn(`conda run -n cs1430 python ${scriptPath} ${flag} ${mediaPaths[0]} --style ${mediaPaths[1]}`, { shell: true, stdio: 'pipe' })
+            const activateProcess = spawn(`conda run -n cs1430 python ${scriptPath} ${flag} ${mediaPaths[0].replaceAll(' ', '\\ ')} --style ${mediaPaths[1].replaceAll(' ', '\\ ')}`, { shell: true, stdio: 'pipe' })
             activateProcess.stdout.pipe(process.stdout);
     
             activateProcess.stdout.on('data', (data) => {

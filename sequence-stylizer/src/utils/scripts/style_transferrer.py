@@ -34,12 +34,16 @@ def load_style_image(path):
 
   return prepare_image(image)
 
-def mean_square_loss(target_tensors, current_tensors):
+def mean_square_loss(target_tensors, current_tensors, mean_squared = False):
   '''calculate the total loss between target tensors and current tensors using mse'''
 
   loss = 0
   for target_feature, current_feature in zip(target_tensors, current_tensors):
     mse = tf.reduce_mean((current_feature - target_feature) ** 2)
+    
+    if mean_squared:
+      mse /= (target_feature.shape[0] * target_feature.shape[1])
+
     loss += mse
 
   return loss
@@ -148,9 +152,15 @@ class StyleTransferrer:
 
       self.prev_warped_to_cur = warp(self.prev_stylized_frame, self.forward_flow)
       self.calculate_occlusions()
+
+      # mask = np.zeros_like(np.stack((self.current_grey_frame,)*3, axis=-1))
+      # mask[:, :, 1] = 255
+      # draw_flow(mask, self.forward_flow, "Flow")
+      # cv2.waitKey(1)
       
       # if its a later image, then start the optimization at the previous image warped to the new frame
       self.optimized_frame.assign(tf.expand_dims(self.prev_warped_to_cur, 0))
+      # self.optimized_frame.assign(current_frame)
  
   def calculate_occlusions(self):
     '''calculate occlusions between the previous and current frames based on the method in the paper'''
@@ -180,8 +190,6 @@ class StyleTransferrer:
         if (left_side > right_side):
           self.occlusions[y][x] = 1
 
-        
-
   def temporal_loss(self):
     '''calculate the temporal loss between two frames'''
     if self.first_frame:
@@ -201,15 +209,13 @@ class StyleTransferrer:
     '''calculate the total loss of the system in the current state'''
     content_features, style_features = self.extractor.extract(self.optimized_frame)
 
-    style_loss = mean_square_loss(self.target_style_features, style_features)
+    style_loss = mean_square_loss(self.target_style_features, style_features, True)
     content_loss = mean_square_loss(self.target_content_features, content_features)
     temporal_loss = self.temporal_loss()
 
     print("Style: ", constants.STYLE_WEIGHT * style_loss)
     print("Content: ", constants.CONTENT_WEIGHT * content_loss)
     print("Temporal: ", constants.TEMPORAL_WEIGHT * temporal_loss)
-
-
 
     return constants.CONTENT_WEIGHT * content_loss \
         + constants.STYLE_WEIGHT * style_loss \
@@ -230,10 +236,12 @@ class StyleTransferrer:
   def optimize(self, as_image=True):
     '''optimize the image many times and then return the result as an array or image'''
 
-    for j in range(15 if self.first_frame else constants.EPOCHS):
+    print("Epoch: ", "")
+    for j in range(30 if self.first_frame else constants.EPOCHS):
       for _ in range(constants.STEPS_PER_EPOCH):
         self.__optimize_step()
-      print("Epoch: ", j)
+      print(j, end=" ")
+    print()
     
     self.prev_grey_frame = self.current_grey_frame
     self.prev_stylized_frame = self.to_array()  

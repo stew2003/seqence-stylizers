@@ -31,6 +31,7 @@ def warp(image, flow):
   return cv2.remap(image, flow, None, cv2.INTER_LINEAR)
 
 # From tutorial to draw flow nicely!
+# NOT USED IN FINAL PROJECT
 def draw_flow(mask, flow, name):
   '''takes in an optical flow and draws it using a mask'''
 
