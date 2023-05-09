@@ -45,10 +45,15 @@ def main():
   print(ARGS.style)
 
   dir_path = "public/frames"
+  output_path = "public/output"
   if os.path.exists(dir_path):
     shutil.rmtree(dir_path)
+  if os.path.exists(output_path):
+    shutil.rmtree(output_path)
   
-  os.mkdir('public/frames')
+  os.mkdir(dir_path)
+  os.mkdir(output_path)
+
   st = StyleTransferrer(ARGS.style)
 
   if (ARGS.video != None):
