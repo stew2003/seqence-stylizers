@@ -1,2 +1,4 @@
 scripts/frames
 scripts/output
+*.jpeg
+*.jpg

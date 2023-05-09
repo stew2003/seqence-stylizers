@@ -122,6 +122,7 @@ export default function Home() {
     setFiles([])
     setPreviewUrls([])
     setThumbnailUrl(null)
+    setDownloadThumbnail(null)
     setImagePaths([])
     setTransfer(null)
     setShow(true)
@@ -216,9 +217,8 @@ export default function Home() {
     
     const response: TransferResponseType = await res.json()
     if (response.data) {
-      // turn off loading screen
+      // print response
       console.log(response.data)
-      
       // continually loop and check status of transfer script every 10 seconds using get request
       const loop_id = setInterval(async () => {
         const get_res = await fetch(SERVER_URL + "transfer", {
@@ -227,6 +227,7 @@ export default function Home() {
         const get_response: TransferResponseType = await get_res.json()
         // once script finishes the loop terminates and state is updated
         if (get_response.data?.status !== "") {
+          setTransfer(null)
           clearInterval(loop_id)
           if (get_response.data!.status === '--image') setTransfer(IMAGE_OUTPUT) // sets downloable preview to the image
           else { // extract thumbnail from outputted movie
@@ -251,6 +252,7 @@ export default function Home() {
             })
             setTransfer(MOVIE_OUTPUT) 
           }
+          // Turn off loading screen
           setLoading(false)
         } else if (get_response.error !== null) {
           clearInterval(loop_id)
