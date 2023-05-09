@@ -5,6 +5,8 @@ import mime from "mime";
 import { join } from "path";
 import * as dateFn from "date-fns";
 
+// inspiration from https://codersteps.com/articles/how-to-build-a-file-uploader-with-next-js-and-formidable
+
 export const FormidableError = formidable.errors.FormidableError;
 
 export const parseForm = async (
